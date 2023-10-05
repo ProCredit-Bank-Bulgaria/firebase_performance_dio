@@ -16,12 +16,14 @@ class DioFirebasePerformanceInterceptor extends Interceptor {
   DioFirebasePerformanceInterceptor({
     this.requestContentLengthMethod = defaultRequestContentLength,
     this.responseContentLengthMethod = defaultResponseContentLength,
+    this.generateKey,
   });
 
   /// key: requestKey hash code, value: ongoing metric
-  final _map = <int, HttpMetric>{};
+  final _map = <dynamic, HttpMetric>{};
   final RequestContentLengthMethod requestContentLengthMethod;
   final ResponseContentLengthMethod responseContentLengthMethod;
+  final dynamic Function(Map<String, dynamic>)? generateKey;
 
   @override
   Future onRequest(
@@ -32,7 +34,8 @@ class DioFirebasePerformanceInterceptor extends Interceptor {
         options.method.asHttpMethod()!,
       );
 
-      final requestKey = options.extra.hashCode;
+      final requestKey =
+          generateKey?.call(options.extra) ?? options.extra.toString().hashCode;
       _map[requestKey] = metric;
       final requestContentLength = requestContentLengthMethod(options);
       await metric.start();
@@ -47,7 +50,8 @@ class DioFirebasePerformanceInterceptor extends Interceptor {
   Future onResponse(
       Response response, ResponseInterceptorHandler handler) async {
     try {
-      final requestKey = response.requestOptions.extra.hashCode;
+      final requestKey = generateKey?.call(response.requestOptions.extra) ??
+          response.requestOptions.extra.toString().hashCode;
       final metric = _map[requestKey];
       metric?.setResponse(response, responseContentLengthMethod);
       await metric?.stop();
@@ -57,9 +61,10 @@ class DioFirebasePerformanceInterceptor extends Interceptor {
   }
 
   @override
-  Future onError(DioError err, ErrorInterceptorHandler handler) async {
+  Future onError(DioException err, ErrorInterceptorHandler handler) async {
     try {
-      final requestKey = err.requestOptions.extra.hashCode;
+      final requestKey = generateKey?.call(err.requestOptions.extra) ??
+          err.requestOptions.extra.toString().hashCode;
       final metric = _map[requestKey];
       metric?.setResponse(err.response, responseContentLengthMethod);
       await metric?.stop();
