@@ -1,8 +1,7 @@
 # [0.5.1]
 
-- Update to dio 5.3.3
-- Update dependency constraints to sdk: '>=2.18.0 <4.0.0'
 - Fix an issue with key generating method
+- Update dependency constraints to sdk: '>=2.18.0 <4.0.0'
 
 # [0.5.0]
 
